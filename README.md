@@ -1,83 +1,57 @@
-# 💬 Whop – Real-Time Messenger Platform
+# 💬 Real-Time Chat Application
 
-> This codebase is licensed for **commercial use only with a paid license** Plus **Full Source with Whop AI Integration**.
-> It’s \*\*free for personal use\*\*.
-> 👉 [Get a Commercial License + Full Code](https://techwithemma.gumroad.com/l/puvbkz)
-> 👉 [Read License Terms](https://github.com/TechWithEmmaYT/MERN-RealTime-Messagers-Platform/blob/main/TECHWITHEMMA-LICENSE.md)
-
----
-## 🤖 Get the Full Source code (Whop AI Code Included)
-
-This GitHub code includes only the core real-time messenger platform.
-To add **AI-powered conversations** (like Meta AI in Messenger), get the **Whop AI Source code**.
-
-- 📡 Real-time streaming via WebSocket
-- 🧠 Context-aware AI chat replies
-- 🔌 Secure backend + frontend AI setup
-- ⚙️ Ready local setup
-
-👉 [Get the Full Code + Whop AI Integration](https://techwithemma.gumroad.com/l/btzdi)
+A full-featured real-time chat application built with **React**, **TypeScript**, **Node.js**, and **Socket.IO**.  
+Supports private chat, group chat, real-time messaging, image messages, “is typing” indicators, and more.  
+AI chat integration is planned as the next major feature.
 
 ---
 
-## ❤️ Support TechWithEmma
+## 🚀 Features
 
-If you love this project and want to support future ones:
+### 🔐 Authentication
 
-- ☕ [Buy Me a Coffee](https://buymeacoffee.com/techwithemmaofficial)
-- 🌟 Star this repo
-- 🎥 [Subscribe on YouTube](https://tinyurl.com/subcribe-to-techwithEmma)
+- User registration & login
+- Secure session handling with JWT cookies
+- Input validation and form management
 
----
+### 💬 Real-Time Messaging
 
-## 🗝️ Key Features
+- Real-time private chat
+- Real-time group chat using Socket.IO rooms
+- Message delivery status and UI updates
 
-- ✅ Authentication with Secure Cookies
-- 🔌 Real-Time Messaging via WebSocket (Socket.io)
-- 💬 Create One-on-One or Group Chats
-- 👥 Join & Leave Rooms in Real-Time
-- 🟢 Online / Offline User Presence
-- 💬 Reply to Specific Messages
-- ⚡ Real-Time Last Message Updates
-- 🤖 Whop AI – Built-in Chat Intelligence
-- 📁 File Upload with Cloudinary Integration
-- 🌗 Light & Dark Mode
-- 📱 Fully Responsive UI
-- 🎨 Styled with **Tailwind v4** + **Shadcn/UI**
-- 🧩 Built with **Node.js**, **MongoDB**, **React**, and **TypeScript**
-- 🚀 Deployment Ready
+### ✏️ Typing Indicator
 
-## 🧠 How to Use This Project
+- Shows when other users are typing in the conversation
+- Works in both 1-on-1 and group chats
 
-### 📺 Watch the Complete Full Course on YouTube (Include the Whop AI)
+### 🖼️ Image Messages
 
-Learn how it all works — from real-time messaging to the complete folder structure and design system.
+- Upload images using Cloudinary
+- Preview and send images inside chat
 
-👉 [Watch the Course](https://youtube.com/@techwithemmaofficial)
+### 🟢 Online Presence (optional depending on your implementation)
 
-## 🤖 Want the full code with _Whop AI Integration_?
-
-- 📡 Real-time streaming via WebSocket
-- 🧠 Context-aware AI chat replies
-- 🔌 Secure backend + frontend AI setup
-- ⚙️ Ready configuration
-
-👉 [Get the Full Code + Whop AI Integration](https://techwithemma.gumroad.com/l/btzdi)
+- Track online/offline status of users
 
 ---
 
-## 📜 License
+## 📚 Tech Stack
 
-A **paid license** is required for commercial use.
-👉 [Get License](https://techwithemma.gumroad.com/l/puvbkz)
-Read full license here: [TECHWITHEMMA-LICENSE.md](https://github.com/TechWithEmmaYT/MERN-RealTime-Messagers-Platform/blob/main/TECHWITHEMMA-LICENSE.md)
+### Frontend
+
+- React + TypeScript
+- Zustand / Redux (if used)
+- TailwindCSS + shadcn/ui
+- Socket.IO Client
+- React Hook Form + Zod
+
+### Backend
+
+- Node.js + Express + TypeScript
+- Socket.IO Server
+- MongoDB + Mongoose (or Prisma)
+- Cloudinary image upload
+- JWT + cookies for auth
 
 ---
-
-## 🌟 Stay Connected
-
-For more premium SaaS & AI projects:
-
-- 🧠 [TechWithEmma Gumroad Store](https://techwithemma.gumroad.com)
-- 🎥 [YouTube Channel](https://tinyurl.com/subcribe-to-techwithEmma)
-- 💬 [Follow on GitHub](https://github.com/TechWithEmmaYT)
