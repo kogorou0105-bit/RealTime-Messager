@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { MessageType } from "@/types/chat.type";
+import type { ChatType, MessageType } from "@/types/chat.type";
 import { useRef, useState } from "react";
-import { useForm, type ControllerRenderProps } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -10,29 +10,22 @@ import { Form, FormField, FormItem } from "../ui/form";
 import { Input } from "../ui/input";
 import ChatReplyBar from "./chat-reply-bar";
 import { useChat } from "@/hooks/use-chat";
-import { useSocket } from "@/hooks/use-socket";
-import { useAuth } from "@/hooks/use-auth";
+import useIsTyping from "@/hooks/use-typing";
 
 interface Props {
-  chatId: string | null;
+  chat: ChatType;
   currentUserId: string | null;
   replyTo: MessageType | null;
   onCancelReply: () => void;
 }
-const ChatFooter = ({
-  chatId,
-  currentUserId,
-  replyTo,
-  onCancelReply,
-}: Props) => {
+const ChatFooter = ({ chat, currentUserId, replyTo, onCancelReply }: Props) => {
   const messageSchema = z.object({
     message: z.string().optional(),
   });
-  const { socket } = useSocket();
-  const { user } = useAuth();
+
+  const { handleTyping } = useIsTyping(chat);
+
   const { sendMessage, isSendingMsg } = useChat();
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [image, setImage] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -43,34 +36,6 @@ const ChatFooter = ({
       message: "",
     },
   });
-  function handleTyping(
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: ControllerRenderProps<
-      {
-        message?: string | undefined;
-      },
-      "message"
-    >
-  ) {
-    // 1. 保持 react-hook-form 的输入同步
-    field.onChange(e);
-    if (!socket) return;
-    // 2. 如果之前没有正在 typing，通知服务器
-    if (!isTyping) {
-      setIsTyping(true);
-      socket.emit("typing", { chatId, currentUserId, name: user?.name });
-    }
-
-    // 3. 重置停止计时器
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      socket.emit("stopTyping", { chatId, currentUserId, name: user?.name });
-    }, 1000);
-  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,7 +62,7 @@ const ChatFooter = ({
       return;
     }
     const payload = {
-      chatId,
+      chatId: chat._id,
       content: values.message,
       image: image || undefined,
       replyTo: replyTo,
@@ -178,7 +143,7 @@ const ChatFooter = ({
                     autoComplete="off"
                     placeholder="Type new message"
                     className="min-h-[40px] bg-background"
-                    onChange={(e) => handleTyping(e, field)}
+                    onChange={(e) => handleTyping(e, field, currentUserId)}
                   />
                 </FormItem>
               )}

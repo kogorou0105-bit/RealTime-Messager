@@ -4,8 +4,7 @@ import { Server, type Socket } from "socket.io";
 import { Env } from "../config/env.config";
 import { validateChatParticipant } from "../services/chat.service";
 import * as cookie from "cookie";
-import ChatModel from "../models/chat.model";
-import { BadRequestException } from "../utils/app-error";
+
 interface AuthenticatedSocket extends Socket {
   userId?: string;
 }
@@ -35,7 +34,6 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
-      //这里一次把浏览器发过来的所有cookie都拿到了，绝了
       const rawCookie = socket.handshake.headers.cookie;
       if (!rawCookie) return next(new Error("Unauthorized"));
 
@@ -129,16 +127,6 @@ function getIO() {
   if (!io) throw new Error("Socket.IO not initialized");
   return io;
 }
-
-export const emitIsTypingToParticpants = (
-  participantIds: string[] = [],
-  typingUserId: string
-) => {
-  const io = getIO();
-  for (const participantId of participantIds) {
-    io.to(`user:${participantId}`).emit("typing:someone", typingUserId);
-  }
-};
 
 export const emitNewChatToParticpants = (
   participantIds: string[] = [],

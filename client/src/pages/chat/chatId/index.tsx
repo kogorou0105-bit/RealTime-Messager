@@ -70,7 +70,7 @@ const SingleChat = () => {
 
       <ChatFooter
         replyTo={replyTo}
-        chatId={chatId}
+        chat={chat}
         currentUserId={currentUserId}
         onCancelReply={() => setReplyTo(null)}
       />
