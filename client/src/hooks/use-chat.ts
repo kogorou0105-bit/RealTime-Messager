@@ -32,11 +32,16 @@ interface ChatState {
   fetchChats: () => void;
   createChat: (payload: CreateChatType) => Promise<ChatType | null>;
   fetchSingleChat: (chatId: string) => void;
-  sendMessage: (payload: CreateMessageType) => void;
+  sendMessage: (payload: CreateMessageType, isAiChat?: boolean) => void;
 
   addNewChat: (newChat: ChatType) => void;
   updateChatLastMessage: (chatId: string, lastMessage: MessageType) => void;
   addNewMessage: (chatId: string, message: MessageType) => void;
+  addOrUpdateMessage: (
+    chatId: string,
+    tempMessage: MessageType,
+    tempUserId: string
+  ) => void;
 }
 
 export const useChat = create<ChatState>()((set, get) => ({
@@ -105,15 +110,17 @@ export const useChat = create<ChatState>()((set, get) => ({
     }
   },
 
-  sendMessage: async (payload: CreateMessageType) => {
+  sendMessage: async (payload: CreateMessageType, isAiChat?: boolean) => {
     set({ isSendingMsg: true });
     const { chatId, replyTo, content, image } = payload;
     const { user } = useAuth.getState();
+    const chat = get().singleChat?.chat;
+    const aiSender = chat?.participants.find((p) => p.isAI);
 
     if (!chatId || !user?._id) return;
 
     const tempUserId = generateUUID();
-
+    const tempAiId = generateUUID();
     const tempMessage = {
       _id: tempUserId,
       chatId,
@@ -123,22 +130,34 @@ export const useChat = create<ChatState>()((set, get) => ({
       replyTo: replyTo || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      status: "sending...",
+      status: !isAiChat ? "sending..." : "",
     };
+    get().addOrUpdateMessage(chatId, tempMessage, tempUserId);
 
-    // if (isAI) {
-    //  // AI Feature Source code link =>
-    // }
-
-    set((state) => {
-      if (state.singleChat?.chat?._id !== chatId) return state;
-      return {
-        singleChat: {
-          ...state.singleChat,
-          messages: [...state.singleChat.messages, tempMessage],
-        },
+    if (isAiChat && aiSender) {
+      const tempAiMessage = {
+        _id: tempAiId,
+        chatId,
+        content: "",
+        image: null,
+        sender: aiSender,
+        replyTo: null,
+        streaming: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-    });
+      get().addOrUpdateMessage(chatId, tempAiMessage, tempAiId);
+    }
+
+    // set((state) => {
+    //   if (state.singleChat?.chat?._id !== chatId) return state;
+    //   return {
+    //     singleChat: {
+    //       ...state.singleChat,
+    //       messages: [...state.singleChat.messages, tempMessage],
+    //     },
+    //   };
+    // });
 
     try {
       const { data } = await API.post("/chat/message/send", {
@@ -147,19 +166,25 @@ export const useChat = create<ChatState>()((set, get) => ({
         image,
         replyToId: replyTo?._id,
       });
-      const { userMessage } = data;
+      const { userMessage, aiResponse } = data;
+
+      get().addOrUpdateMessage(chatId, userMessage, tempUserId);
+
+      if (isAiChat && aiSender) {
+        get().addOrUpdateMessage(chatId, aiResponse, tempAiId);
+      }
       //replace the temp user message
-      set((state) => {
-        if (!state.singleChat) return state;
-        return {
-          singleChat: {
-            ...state.singleChat,
-            messages: state.singleChat.messages.map((msg) =>
-              msg._id === tempUserId ? userMessage : msg
-            ),
-          },
-        };
-      });
+      // set((state) => {
+      //   if (!state.singleChat) return state;
+      //   return {
+      //     singleChat: {
+      //       ...state.singleChat,
+      //       messages: state.singleChat.messages.map((msg) =>
+      //         msg._id === tempUserId ? userMessage : msg
+      //       ),
+      //     },
+      //   };
+      // });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to send message");
     } finally {
@@ -208,5 +233,28 @@ export const useChat = create<ChatState>()((set, get) => ({
         },
       });
     }
+  },
+
+  addOrUpdateMessage: (chatId: string, msg: MessageType, tempId?: string) => {
+    const singleChat = get().singleChat;
+    if (!singleChat || singleChat.chat._id != chatId) return;
+    const messages = singleChat.messages;
+    const msgIndex = tempId
+      ? messages.findIndex((msg) => msg._id === tempId)
+      : -1;
+    let updatedMessages;
+    if (msgIndex !== -1) {
+      updatedMessages = messages.map((message, i) =>
+        i === msgIndex ? { ...msg } : message
+      );
+    } else {
+      updatedMessages = [...messages, msg];
+    }
+    set({
+      singleChat: {
+        chat: singleChat.chat,
+        messages: updatedMessages,
+      },
+    });
   },
 }));

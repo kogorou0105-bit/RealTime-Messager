@@ -14,7 +14,8 @@ import { initializeSocket } from "./lib/socket";
 import routes from "./routes";
 
 import "./config/passport.config";
-
+process.env.HTTP_PROXY = "http://127.0.0.1:10808";
+process.env.HTTPS_PROXY = "http://127.0.0.1:10808";
 const app = express();
 const server = http.createServer(app);
 

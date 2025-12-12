@@ -36,7 +36,7 @@ export const createChatService = async (
         $all: allParticipantIds,
         $size: 2,
       },
-    }).populate("participants", "name avatar");
+    }).populate("participants", "name avatar isAi");
 
     if (existingChat) return existingChat;
 
@@ -50,7 +50,7 @@ export const createChatService = async (
   // Implement websocket
   const populatedChat = await chat?.populate(
     "participants",
-    "name avatar isAI"
+    "name avatar isAi"
   );
   const particpantIdStrings = populatedChat?.participants?.map((p) => {
     return p._id?.toString();
@@ -67,7 +67,7 @@ export const getUserChatsService = async (userId: string) => {
       $in: [userId],
     },
   })
-    .populate("participants", "name avatar")
+    .populate("participants", "name avatar isAi")
     .populate({
       path: "lastMessage",
       populate: {
@@ -85,7 +85,7 @@ export const getSingleChatService = async (chatId: string, userId: string) => {
     participants: {
       $in: [userId],
     },
-  }).populate("participants", "name avatar");
+  }).populate("participants", "name avatar isAi");
 
   if (!chat)
     throw new BadRequestException(
@@ -93,13 +93,13 @@ export const getSingleChatService = async (chatId: string, userId: string) => {
     );
 
   const messages = await MessageModel.find({ chatId })
-    .populate("sender", "name avatar")
+    .populate("sender", "name avatar isAi")
     .populate({
       path: "replyTo",
       select: "content image sender",
       populate: {
         path: "sender",
-        select: "name avatar",
+        select: "name avatar isAi",
       },
     })
     .sort({ createdAt: 1 });

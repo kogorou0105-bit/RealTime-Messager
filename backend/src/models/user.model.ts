@@ -8,7 +8,7 @@ export interface UserDocument extends Document {
   avatar?: string | null;
   createdAt: Date;
   updatedAt: Date;
-
+  isAi: boolean;
   comparePassword(value: string): Promise<boolean>;
 }
 
@@ -17,16 +17,21 @@ const userSchema = new Schema<UserDocument>(
     name: { type: String, required: true },
     email: {
       type: String,
-      required: true,
       unique: true,
       trim: true,
       lowercase: true,
+      required: function () {
+        return !this.isAi;
+      },
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.isAi;
+      },
     },
     avatar: { type: String, default: null },
+    isAi: { type: Boolean, default: false },
   },
   {
     timestamps: true,

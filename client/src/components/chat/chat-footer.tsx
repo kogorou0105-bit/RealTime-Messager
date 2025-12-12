@@ -17,8 +17,15 @@ interface Props {
   currentUserId: string | null;
   replyTo: MessageType | null;
   onCancelReply: () => void;
+  isAiChat: boolean;
 }
-const ChatFooter = ({ chat, currentUserId, replyTo, onCancelReply }: Props) => {
+const ChatFooter = ({
+  chat,
+  currentUserId,
+  replyTo,
+  onCancelReply,
+  isAiChat,
+}: Props) => {
   const messageSchema = z.object({
     message: z.string().optional(),
   });
@@ -61,6 +68,12 @@ const ChatFooter = ({ chat, currentUserId, replyTo, onCancelReply }: Props) => {
       toast.error("Please enter a message or select an image");
       return;
     }
+    // const payload = {
+    //   chatId: chat._id,
+    //   content: values.message,
+    //   image: image || undefined,
+    //   replyTo: replyTo,
+    // }
     const payload = {
       chatId: chat._id,
       content: values.message,
@@ -68,7 +81,7 @@ const ChatFooter = ({ chat, currentUserId, replyTo, onCancelReply }: Props) => {
       replyTo: replyTo,
     };
     //Send Message
-    sendMessage(payload);
+    sendMessage(payload, isAiChat);
 
     onCancelReply();
     handleRemoveImage();
