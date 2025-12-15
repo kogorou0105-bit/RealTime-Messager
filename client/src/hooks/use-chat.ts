@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
+import { db } from "@/db/db"; // 引入刚才创建的 db
 import type { UserType } from "@/types/auth.type";
 import type {
   ChatType,
@@ -72,7 +73,20 @@ export const useChat = create<ChatState>()((set, get) => ({
   fetchChats: async () => {
     set({ isChatsLoading: true });
     try {
+      // 【新增】1. 优先从 DB 读取缓存，实现秒开
+      const localChats = await db.chats
+        .orderBy("updatedAt")
+        .reverse()
+        .toArray();
+
+      // 如果本地有数据，先展示，并结束 Loading 状态（让用户觉得加载完了）
+      if (localChats.length > 0) {
+        set({ chats: localChats, isChatsLoading: false });
+      }
       const { data } = await API.get("/chat/all");
+      // 【新增】3. 将最新数据通过 bulkPut (批量更新/插入) 同步到 DB
+      // 这样下次刷新时，本地就是最新的
+      await db.chats.bulkPut(data.chats);
       set({ chats: data.chats });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to fetch chats");
@@ -101,7 +115,31 @@ export const useChat = create<ChatState>()((set, get) => ({
   fetchSingleChat: async (chatId: string) => {
     set({ isSingleChatLoading: true });
     try {
+      // 【新增】1. 先尝试读取本地消息
+      // 获取该会话的所有消息，按时间排序
+      const localMessages = await db.messages
+        .where("chatId")
+        .equals(chatId)
+        .sortBy("createdAt");
+
+      // 还要尝试获取本地缓存的 chat 详情信息（如果 fetchChats 还没跑完）
+      const localChatInfo = await db.chats.get(chatId);
+      if (localChatInfo) {
+        set({
+          singleChat: {
+            chat: localChatInfo,
+            messages: localMessages, // 即使是空数组也可以
+          },
+          isSingleChatLoading: localMessages.length === 0, // 如果有消息，就不 loading 了
+        });
+      }
       const { data } = await API.get(`/chat/${chatId}`);
+      // 【新增】3. 同步数据到 DB
+      // data.chat 是详情，data.messages 是数组
+      if (data.chat) await db.chats.put(data.chat);
+      if (data.messages && data.messages.length > 0) {
+        await db.messages.bulkPut(data.messages);
+      }
       set({ singleChat: data });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to fetch chats");
@@ -208,6 +246,8 @@ export const useChat = create<ChatState>()((set, get) => ({
       const { userMessage, aiResponse } = data;
 
       get().addOrUpdateMessage(chatId, userMessage, tempUserId);
+      // 【新增】写入 DB
+      await db.messages.put(userMessage); // 存入真实用户消息
 
       if (isAiChat && aiSender) {
         get().addOrUpdateMessage(chatId, aiResponse, tempAiId);
@@ -239,6 +279,9 @@ export const useChat = create<ChatState>()((set, get) => ({
   },
 
   addNewChat: (newChat: ChatType) => {
+    db.chats
+      .put(newChat)
+      .catch((err) => console.error("Failed to save chat to DB", err));
     set((state) => {
       const existingChatIndex = state.chats.findIndex(
         (c) => c._id === newChat._id
@@ -257,6 +300,12 @@ export const useChat = create<ChatState>()((set, get) => ({
   },
 
   updateChatLastMessage: (chatId, lastMessage) => {
+    db.chats
+      .update(chatId, {
+        lastMessage,
+        updatedAt: lastMessage.updatedAt, // 确保时间同步
+      })
+      .catch((err) => console.error("Failed to update chat in DB", err));
     set((state) => {
       const chat = state.chats.find((c) => c._id === chatId);
       if (!chat) return state;
@@ -269,16 +318,32 @@ export const useChat = create<ChatState>()((set, get) => ({
     });
   },
 
-  addNewMessage: (chatId, message) => {
-    const chat = get().singleChat;
-    if (chat?.chat._id === chatId) {
+  // 修改 addNewMessage 方法，或者新建一个 handleIncomingMessage
+  addNewMessage: async (chatId, message) => {
+    // 改为 async
+    // 1. 存入 DB
+    await db.messages.put(message);
+
+    // 2. 更新最后一条消息到 Chat 表 (用于列表展示预览)
+    // 这一步很重要，否则列表页的预览不会更新
+    const chat = await db.chats.get(chatId);
+    if (chat) {
+      await db.chats.update(chatId, { lastMessage: message });
+    }
+
+    // 3. 原有的 Zustand 更新逻辑
+    const singleChat = get().singleChat;
+    if (singleChat?.chat._id === chatId) {
       set({
         singleChat: {
-          chat: chat.chat,
-          messages: [...chat.messages, message],
+          chat: singleChat.chat,
+          messages: [...singleChat.messages, message],
         },
       });
     }
+
+    // 4. 同时更新列表 Store (如果需要)
+    // ...
   },
 
   addOrUpdateMessage: (chatId: string, msg: MessageType, tempId?: string) => {

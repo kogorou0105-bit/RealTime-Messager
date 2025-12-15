@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AvatarWithBadge from "../avatar-with-badge";
 import useIsTyping from "@/hooks/use-typing";
+import { Video } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface Props {
   chat: ChatType;
@@ -67,6 +69,12 @@ const ChatHeader = ({ chat, currentUserId }: Props) => {
         >
           Chat
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-primary">
+        <Button variant="ghost" size="icon">
+          <Video className="w-5 h-5" />
+        </Button>
       </div>
       <div>
         {typingUsers.length > 0 && isGroup && (

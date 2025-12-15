@@ -17,7 +17,7 @@ const ChatBody = ({ chatId, messages, onReply, scrollElement }: Props) => {
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollElement, // 滚动容器
-    estimateSize: () => 50, // 给一个初始的预估高度
+    estimateSize: () => 110, // 给一个初始的预估高度
     overscan: 5, // 预加载数量，防止滚动太快出现白屏
   });
 
@@ -79,7 +79,7 @@ const ChatBody = ({ chatId, messages, onReply, scrollElement }: Props) => {
     if (messages.length > 0) {
       rowVirtualizer.scrollToIndex(messages.length - 1, {
         align: "end",
-        behavior: "auto",
+        behavior: "smooth",
       });
     }
   }, [messages, rowVirtualizer]); // 监听 messages 变化
