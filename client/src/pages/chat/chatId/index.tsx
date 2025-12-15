@@ -23,6 +23,10 @@ const SingleChat = () => {
   const messages = singleChat?.messages || [];
   const isAiChat = chat?.isAiChat || false;
 
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
+    null
+  );
+
   useEffect(() => {
     if (!chatId) return;
     fetchSingleChat(chatId);
@@ -58,14 +62,22 @@ const SingleChat = () => {
     <div className="relative h-svh flex flex-col">
       <ChatHeader chat={chat} currentUserId={currentUserId} />
 
-      <div className="flex-1 overflow-y-auto bg-background">
+      <div
+        className="flex-1 overflow-y-auto bg-background"
+        ref={setScrollElement}
+      >
         {messages.length === 0 ? (
           <EmptyState
             title="Start a conversation"
             description="No messages yet. Send the first message"
           />
         ) : (
-          <ChatBody chatId={chatId} messages={messages} onReply={setReplyTo} />
+          <ChatBody
+            chatId={chatId}
+            messages={messages}
+            onReply={setReplyTo}
+            scrollElement={scrollElement}
+          />
         )}
       </div>
 

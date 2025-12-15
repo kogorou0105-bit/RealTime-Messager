@@ -115,7 +115,7 @@ export const useChat = create<ChatState>()((set, get) => ({
     const { chatId, replyTo, content, image } = payload;
     const { user } = useAuth.getState();
     const chat = get().singleChat?.chat;
-    const aiSender = chat?.participants.find((p) => p.isAI);
+    const aiSender = chat?.participants.find((p) => p.isAi);
 
     if (!chatId || !user?._id) return;
 
@@ -133,7 +133,6 @@ export const useChat = create<ChatState>()((set, get) => ({
       status: !isAiChat ? "sending..." : "",
     };
     get().addOrUpdateMessage(chatId, tempMessage, tempUserId);
-
     if (isAiChat && aiSender) {
       const tempAiMessage = {
         _id: tempAiId,
@@ -147,17 +146,52 @@ export const useChat = create<ChatState>()((set, get) => ({
         updatedAt: new Date().toISOString(),
       };
       get().addOrUpdateMessage(chatId, tempAiMessage, tempAiId);
-    }
+      // // ==================================================
+      // // 【新增】前端模拟 AI 回复的核心逻辑 (Mock AI Response)
 
-    // set((state) => {
-    //   if (state.singleChat?.chat?._id !== chatId) return state;
-    //   return {
-    //     singleChat: {
-    //       ...state.singleChat,
-    //       messages: [...state.singleChat.messages, tempMessage],
-    //     },
-    //   };
-    // });
+      // // 1. 假装过个 600ms 后端处理完了，用户消息发送成功
+      // setTimeout(() => {
+      //   const successUserMsg = { ...tempMessage, status: "sent" };
+      //   get().addOrUpdateMessage(chatId, successUserMsg, tempUserId);
+      // }, 600);
+      // const mockResponseText = `这是一个 **前端模拟** 的 AI 回复。\n\n即使后端没有连接，我也可以通过 \`setInterval\` 来模拟流式打字的效果。\n\n- 模拟速度：50ms/字\n- 状态更新：直接修改 Zustand Store\n\n希望能帮到你调试 UI！🚀`;
+
+      // let currentIndex = 0;
+      // // 3. 开启定时器，模拟 Socket 推流
+      // const intervalId = setInterval(() => {
+      //   // 如果字打完了
+      //   if (currentIndex >= mockResponseText.length) {
+      //     clearInterval(intervalId);
+
+      //     // 模拟结束：把 streaming 关掉
+      //     const finalAiMessage = {
+      //       ...tempAiMessage,
+      //       content: mockResponseText,
+      //       streaming: false, // 关掉动画
+      //     };
+      //     get().addOrUpdateMessage(chatId, finalAiMessage, tempAiId);
+      //     set({ isSendingMsg: false }); // 解锁发送按钮
+      //     return;
+      //   }
+
+      //   // 取出当前要显示的文字片段 (例如: "这", "这是", "这是一"...)
+      //   const currentContent = mockResponseText.slice(0, currentIndex + 1);
+
+      //   // 更新 Store，界面会随之重绘
+      //   get().addOrUpdateMessage(
+      //     chatId,
+      //     {
+      //       ...tempAiMessage,
+      //       content: currentContent,
+      //     },
+      //     tempAiId
+      //   );
+
+      //   currentIndex++;
+      // }, 30); // 调整这里可以控制打字速度，30ms 比较像 AI
+      // return;
+      // // ==================================================
+    }
 
     try {
       const { data } = await API.post("/chat/message/send", {
@@ -166,6 +200,11 @@ export const useChat = create<ChatState>()((set, get) => ({
         image,
         replyToId: replyTo?._id,
       });
+      if (isAiChat && aiSender && !data.aiResponse) {
+        // 手动抛出错误，强行跳转到 catch 块
+        // 如果后端返回了错误信息在 data.message 里，就用它，否则用默认文案
+        throw new Error(data.message || "服务器业务异常 (200)");
+      }
       const { userMessage, aiResponse } = data;
 
       get().addOrUpdateMessage(chatId, userMessage, tempUserId);
@@ -173,20 +212,27 @@ export const useChat = create<ChatState>()((set, get) => ({
       if (isAiChat && aiSender) {
         get().addOrUpdateMessage(chatId, aiResponse, tempAiId);
       }
-      //replace the temp user message
-      // set((state) => {
-      //   if (!state.singleChat) return state;
-      //   return {
-      //     singleChat: {
-      //       ...state.singleChat,
-      //       messages: state.singleChat.messages.map((msg) =>
-      //         msg._id === tempUserId ? userMessage : msg
-      //       ),
-      //     },
-      //   };
-      // });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to send message");
+      // ✅ 新增：把卡死的气泡救活，变成错误提示
+      if (isAiChat && aiSender) {
+        get().addOrUpdateMessage(
+          chatId,
+          {
+            _id: tempAiId, // 找到那个假消息 ID
+            chatId,
+            content: "🔴 AI 回复失败：后端没有响应错误信息。", // 显式写出来
+            sender: aiSender,
+            streaming: false, // 关掉动画！
+            // ...其他字段补全，
+            image: null,
+            replyTo: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          tempAiId
+        );
+      }
     } finally {
       set({ isSendingMsg: false });
     }
